@@ -1,37 +1,33 @@
-import argparse
 import asyncio
+from broadcast_server.depends import (
+    get_broadcast_server,
+    get_cli_client,
+    get_connection_manager,
+    get_connections_set,
+)
+import argparse
 
-from broadcast_server.depends import get_chat_client, get_chat_server
 
-
-def main() -> None:
-    parser = argparse.ArgumentParser(prog="broadcast-server")
-    sub = parser.add_subparsers(dest="cmd")
-
-    s = sub.add_parser("start")
-    s.add_argument("--host", default="localhost")
-    s.add_argument("--port", type=int, default=8765)
-
-    c = sub.add_parser("connect")
-    c.add_argument("--host", default="localhost")
-    c.add_argument("--port", type=int, default=8765)
-
+def main():
+    parser = argparse.ArgumentParser("broadcast-server")
+    parser.add_argument("command", choices=["start", "connect"])
+    parser.add_argument("--host", default="localhost")
+    parser.add_argument("--port", default=8765)
+    parser.add_argument("--username", default="anonymous")
     args = parser.parse_args()
 
-    if args.cmd == "start":
-        server = get_chat_server()
-        print("Сервер запущен")
-        asyncio.run(server.start_server(args.host, args.port))
-    elif args.cmd == "connect":
-        uri = f"ws://{args.host}:{args.port}"
+    if args.command == "start":
+        conns = get_connections_set()
+        manager = get_connection_manager(conns)
+        srv = get_broadcast_server(args.host, args.port, manager)
+
+        asyncio.run(srv.start())
+    elif args.command == "connect":
+        client = get_cli_client(args.host, args.port, args.username)
         try:
-            client = get_chat_client()
-            print("Вы подключились к серверу")
-            asyncio.run(client.run_client(uri))
+            asyncio.run(client.connect())
         except KeyboardInterrupt:
-            pass
-    else:
-        parser.print_help()
+            print("\nКлиент остановлен пользователем")
 
 
 if __name__ == "__main__":
