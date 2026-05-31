@@ -1,8 +1,18 @@
 services:
   server:
     build: .
-    image: server
-    container_name: server
+    image: broadcast_server
+    container_name: broadcast_server
     ports:
       - "8765:8765"
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    image: broadcast_server_frontend
+    container_name: broadcast_server_frontend
+    ports:
+      - "8000:80"
+    depends_on:
+      - server
     restart: unless-stopped
